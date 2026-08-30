@@ -51,8 +51,6 @@ https://auth.diving-fish.com/console
 
 三种方式并不互斥，但一个应用通常只需要其中一种。
 
-方式二与方式三的绑定阶段均可选择由用户回填确认码来收尾，以省去轮询，且更为安全，见 [4.4 节](#44-改由用户回填确认码可选)与 [5.3 节](#53-改由用户回填确认码推荐)。
-
 **接入方式与部署形态是两个独立的问题。** 方式一对机密客户端与公开客户端同样适用，分发出去的桌面程序、移动应用只要能登记回调地址（填 `http://127.0.0.1/callback` 一类的本机回环地址即可，端口不参与比对），就走方式一，仅仅是不携带 `client_secret` 而已。方式二与方式三的差别才是部署形态本身：绑定阶段完全相同，区别只在取得令牌的方式——机密客户端凭 `client_secret` 随时换票，不保存任何用户凭据；公开客户端则为每位用户各自保存一把 refresh token 。
 
 ## 3. 方式一：授权码 + PKCE
@@ -191,7 +189,7 @@ subject=qq:123456
 
 取值同时会匹配用户绑定的 QQ 号与频道 ID ，与 `Developer-Token` 时代 `qq` 参数的行为一致。
 
-采用这条路径时，您的存量用户已经在迁移中补齐了授权记录，无需重新绑定，可以直接跳到 [4.5 节](#45-换票)。仅当换票返回 `consent_required` 时，才需要引导用户走一次 4.2 与 4.3 的绑定流程。
+采用这条路径时，您的存量用户已经在迁移中补齐了授权记录，无需重新绑定，可以直接跳到 [4.4 节](#44-换票)。仅当换票返回 `consent_required` 时，才需要引导用户走一次 4.2 与 4.3 的绑定流程。
 
 请在上述日期之前改用路径 B 。您手上已经有这个 QQ 号，按下方公式算出摘要即可，同样不需要用户重新绑定。
 
@@ -303,44 +301,7 @@ def poll(device_code: str, interval: int = 5, timeout: int = 600) -> dict:
 请遵守响应中给出的 `interval` （5 秒）。轮询过快会收到 `slow_down` ，此时应当增大间隔而非立即重试。
 :::
 
-### 4.4 改由用户回填确认码（可选）
-
-轮询要求您的应用在发起绑定之后持续持有 `device_code` ，为此通常需要一个后台任务来计时与重试。若这在您的框架中不便实现，可改由用户回填确认码：发起绑定时提交 `handoff=code` ，用户点击同意后即在页面上得到该码，由他发回给您的应用（例如作为一条聊天指令的参数），您据此换取一次令牌。您的应用只需在收到用户消息时动作一次，无需任何后台任务。
-
-```python
-def start_binding_with_code(external_id: str, label: str) -> dict:
-    response = requests.post(f"{AUTH}/oauth/device_authorization", data={
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "scope": "prober.records.read",
-        "subject_ref": subject_ref(external_id),
-        "binding_label": label,
-        "handoff": "code",                       # 改由用户回填确认码
-    }, timeout=10)
-    response.raise_for_status()
-    return response.json()
-
-
-def redeem(confirmation_code: str) -> dict:
-    """用户发回确认码时调用一次，成功即表示绑定完成。"""
-    response = requests.post(f"{AUTH}/oauth/token", data={
-        "grant_type": "urn:diving-fish:params:oauth:grant-type:confirmation-code",
-        "confirmation_code": confirmation_code,  # 大小写、连字符、空白无需自行处理
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-    }, timeout=10)
-    if response.status_code != 200:
-        raise RuntimeError("确认码无效或已过期，请让用户重新发起绑定")
-    return response.json()
-```
-
-确认码为一次性凭据，有效期 10 分钟，且只能由发起该次绑定的应用兑换。
-
-:::warning
-提交 `handoff=code` 的绑定不能再以轮询取回令牌，两种收尾方式只能择一。完整说明见 [接口文档 4.5 节](./oauth-api-document.md#45-confirmation-code-确认码换取令牌)。
-:::
-
-### 4.5 换票
+### 4.4 换票
 
 日常调用时，用应用凭据与用户标识换取一张代表该用户的令牌：
 
@@ -394,7 +355,7 @@ def access_token(subject: str) -> str:
     return token
 ```
 
-### 4.6 完整示例
+### 4.5 完整示例
 
 以下是一个按 QQ 号服务用户的 bot 的完整骨架，涵盖了「未绑定则引导绑定，已绑定则直接查询」：
 
@@ -483,7 +444,7 @@ def on_command(qq: str) -> str:
 
 适用于分发给用户各自部署的插件、桌面程序与自建 bot ，即公开客户端。**本节所有请求都不携带 `client_secret`** ——这类应用没有该凭据。
 
-绑定阶段与方式二相同，区别在于：您的应用无法换票，用户令牌只在绑定完成时出现一次，因此**必须将其取回**，并为每位用户各自保存取回的 refresh token 。取回方式有两种，轮询（ [5.2 节](#52-轮询取得令牌) ）或由用户回填确认码（ [5.3 节](#53-改由用户回填确认码推荐) ）。**本方式建议采用后者**，理由见 [5.1 节](#51-发起绑定)的警告。
+绑定阶段与方式二相同，区别在于：您的应用无法换票，用户令牌只在轮询的响应中出现一次，因此**必须轮询**，并且要为每位用户各自保存取回的 refresh token 。
 
 ### 5.1 发起绑定
 
@@ -511,8 +472,6 @@ def start_binding() -> dict:
 该端点不校验凭据，任何人都能用您的 `client_id` 生成一条绑定链接。受害者点击同意之后，令牌落到的是发起那次请求的人手上，也就是攻击者——公开客户端在这条路上交出的是长期访问权限，比机密客户端的冒名绑定更直接。
 
 同意页会对公开客户端额外做出提示，但那是最后一道防线。让用户码只出现在用户自己启动的程序中，才是第一道。
-
-**更彻底的做法是改用确认码收尾**，见 [5.3 节](#53-改由用户回填确认码推荐)。此时即便攻击者生成了链接、用户也点击了同意，令牌仍不会交付给他：确认码只出现在该用户的浏览器中。
 :::
 
 ### 5.2 轮询取得令牌
@@ -558,38 +517,7 @@ def poll(device_code: str, interval: int = 5, timeout: int = 600) -> dict:
 
 **拿到后请立即持久化 `refresh_token`。** 同一个设备码不能换第二次，这一步失手就只能让用户重新绑定一遍。
 
-### 5.3 改由用户回填确认码（推荐）
-
-发起绑定时提交 `handoff=code` ，用户点击同意后即在页面上得到一串确认码，由他发回给您的程序（粘贴进输入框、作为命令参数等），您据此换取一次令牌：
-
-```python
-def start_binding() -> dict:
-    response = requests.post(f"{AUTH}/oauth/device_authorization", data={
-        "client_id": CLIENT_ID,
-        "scope": "prober.records.read",
-        "handoff": "code",
-    }, timeout=10)
-    response.raise_for_status()
-    return response.json()
-
-
-def redeem(confirmation_code: str) -> dict:
-    """响应与轮询完全一致，同样包含 refresh_token 与 sub 。"""
-    response = requests.post(f"{AUTH}/oauth/token", data={
-        "grant_type": "urn:diving-fish:params:oauth:grant-type:confirmation-code",
-        "confirmation_code": confirmation_code,
-        "client_id": CLIENT_ID,                  # 公开客户端不携带 client_secret
-    }, timeout=10)
-    if response.status_code != 200:
-        raise RuntimeError("确认码无效或已过期，请重新发起绑定")
-    return response.json()
-```
-
-对公开客户端而言，本方式除省去轮询之外，更重要的是消除了 [5.1 节](#51-发起绑定)警告中的风险：确认码只出现在完成授权的那位用户的浏览器中，冒名者即便生成了绑定链接也无从取得。
-
-`refresh_token` 同样只在这一次响应中出现，请立即持久化。提交 `handoff=code` 的绑定不能再以轮询取回令牌，两种收尾方式只能择一。
-
-### 5.4 续期
+### 5.3 续期
 
 access token 有效期 15 分钟，过期后用 refresh token 换新的：
 
@@ -612,7 +540,7 @@ def refresh(refresh_token: str) -> dict:
 
 用户在水鱼账号中撤销授权后，refresh token 立即失效，刷新将返回 `invalid_grant` 。此时应引导用户重新走一次 5.1 的绑定流程，而不是反复重试。
 
-### 5.5 完整示例
+### 5.4 完整示例
 
 ```python
 import json
@@ -711,7 +639,6 @@ Authorization: Bearer eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6...
 
 - [ ] 所有请求都不携带 `client_secret`
 - [ ] 绑定码显示在自己的程序界面中，未做成「把链接发给他人」的形式
-- [ ] 已提交 `handoff=code` ，改由用户回填确认码；若仍采用轮询，已确认理解 [5.1 节](#51-发起绑定)警告中的风险
 - [ ] 每位用户的 refresh token 各自保存，未在多处共享
 
 使用 refresh token 的应用（授权码方式与公开客户端）：
