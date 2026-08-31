@@ -13,15 +13,25 @@ sidebar_position: 3
 如果您想要介绍一种新的第三方工具导入方式，请提交此界面的 Pull Request。
 
 
-## 通过AWMC BOT进行成绩上传
+## 通过 AWMC BOT 进行成绩上传
 
-使用第三方项目 AWMC BOT 通过官方数据源进行成绩上传。
+:::tip
+AWMC BOT 现已支持 QQ 直接添加，QQ 号为 `4013752603`。
 
-您可以加入 QQ 官方群（1072033605）后，使用"mai绑定水鱼"命令进行更新。
+<img width="480" height="480" alt="添加QQ号" src="https://github.com/user-attachments/assets/839d908e-7ede-464a-9046-518051d2f072" />
+:::
 
-> 初次使用需绑定账号，请根据 Bot 的教程使用相关命令进行绑定。仅需绑定一次后皆可使用相关功能。
+您可以使用第三方项目 AWMC BOT，通过官方数据源进行成绩上传。
+
+具体步骤：
+1. 加入 [QQ 官方群（群号：1048450426）](https://qm.qq.com/q/FeQHYuAabK)；
+2. 在群内使用 `maiu` 命令进行成绩更新。
+
+> ⚠️ **初次使用需绑定账号**  
+> 请根据 Bot 的提示，使用相关命令完成账号绑定。**仅需绑定一次**，后续即可直接使用所有功能。
 
 <img src={require('/img/awmc-bot.png').default} width="60%" />
+
 
 ## 通过Mizuki Bot进行成绩上传
 
