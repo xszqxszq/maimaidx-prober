@@ -492,6 +492,8 @@ https://www.diving-fish.com/api/{游戏数据类别}/{端点路径}
 | `chunithmprober` | `/player/update_records_html` | POST | `chunithm.records.write` | —— |
 | `chunithmprober` | `/player/delete_records` | DELETE | `chunithm.records.write` | —— |
 
+此外，`maimaidxprober` 和 `chunithmprober` 的 `/query/player` 在支持通过 `qq` / `username` 查询的同时也支持使用 Bearer 令牌（无需携带 `qq` / `username` 参数，仅需在请求头中包含 `Authorization: Bearer your_access_token`，所需 scope：`prober.records.read` / `chunithm.records.read`）。
+
 写入类端点的请求体与响应结构，与 [查分器 API 文档](./zh-api-document.md) 中同名端点的说明一致，此处不再重复。
 
 ### 9.1 获取用户的完整成绩信息

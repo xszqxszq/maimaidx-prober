@@ -10,7 +10,7 @@ import time
 from audioop import reverse
 from collections import defaultdict
 from math import floor
-from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, md5
+from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, oauth_optional_required, md5
 from quart import Quart, request, g, make_response
 from models.maimai import NewRecord
 from tools._jwt import *
@@ -463,33 +463,37 @@ async def player_records_chunitest():
 
 
 @app.route("/chuni/query/player", methods=['POST'])
+@oauth_optional_required("chunithm.records.read")
 async def query_player_chuni():
     """
     通过 QQ 或用户名查询用户的成绩数据，仅返回 b30 + r10 部分。
     请求体为 JSON 格式，参数需包含 `qq` 或 `username` 中的一项。
     """
     obj = await request.json
-    try:
-        if "qq" in obj:
-            p: Player = await Player.by_qq(obj["qq"])
-        else:
-            username = obj["username"]
-            p: Player = await Player.aio_get(Player.username == username)
-    except Exception:
-        return {
-            "message": "user not exists"
-        }, 400
-    if p.privacy and "username" in obj:
+    if getattr(g, "login_type", None) == 'oauth':
+        p: Player = g.user
+    else:
         try:
-            token = decode(request.cookies['jwt_token'])
-        except KeyError:
-            return {"status": "error", "message": "已设置隐私"}, 403
-        if token == {}:
-            return {"status": "error", "message": "已设置隐私"}, 403
-        if token['exp'] < ts():
-            return {"status": "error", "message": "会话过期"}, 403
-        if token['username'] != obj["username"]:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            if "qq" in obj:
+                p: Player = await Player.by_qq(obj["qq"])
+            else:
+                username = obj["username"]
+                p: Player = await Player.aio_get(Player.username == username)
+        except Exception:
+            return {
+                "message": "user not exists"
+            }, 400
+        if p.privacy and "username" in obj:
+            try:
+                token = decode(request.cookies['jwt_token'])
+            except KeyError:
+                return {"status": "error", "message": "已设置隐私"}, 403
+            if token == {}:
+                return {"status": "error", "message": "已设置隐私"}, 403
+            if token['exp'] < ts():
+                return {"status": "error", "message": "会话过期"}, 403
+            if token['username'] != obj["username"]:
+                return {"status": "error", "message": "已设置隐私"}, 403
     old30, new20 = await get_b50(p)
     asyncio.create_task(compute_ra(p))
     nickname = p.nickname
