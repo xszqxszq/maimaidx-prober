@@ -44,7 +44,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `maimaidxprober` | [`/dev/player/records`](#315-获取用户的完整成绩信息) | Developer-Token **（已废弃）** | 获取用户的完整成绩信息 |
 | `maimaidxprober` | [`/dev/player/record`](#316-获取用户的单曲成绩信息) | Developer-Token **（已废弃）** | 获取用户的单曲成绩信息 |
 | `maimaidxprober` | [`/player/record`](#316-获取用户的单曲成绩信息) | Bearer | 获取用户的单曲成绩信息 |
-| `maimaidxprober` | [`/query/player`](#317-获取用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息 |
+| `maimaidxprober` | [`/query/player`](#317-获取用户的简略成绩信息) | 无需验证 / Bearer | 获取用户的简略成绩信息 |
 | `maimaidxprober` | [`/query/plate`](#318-按版本获取用户的成绩信息) | Developer-Token **（已废弃）** | 按版本获取用户的成绩信息 |
 | `maimaidxprober` | [`/player/plate`](#318-按版本获取用户的成绩信息) | Bearer | 按版本获取用户的成绩信息 |
 | `maimaidxprober` | [`*/covers`](#319-按-id-获取歌曲的封面图片) | 无需验证 | 按 ID 获取歌曲的封面图片 |
@@ -58,7 +58,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `chunithmprober` | [`/latest_version`](#322-获取当前新歌版本标识) | 无需验证 | 获取当前版本作为“新曲”的版本标识 |
 | `chunithmprober` | [`/player/records`](#323-获取用户的完整成绩数据) | 登录验证 / Import-Token / Bearer | 获取用户的成绩数据（best 部分） |
 | `chunithmprober` | [`/player/test_data`](#324-获取用于测试的成绩数据) | 无需验证 | 获取用于测试与联调的成绩数据 |
-| `chunithmprober` | [`/query/player`](#327-查询用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息（b30+n20） |
+| `chunithmprober` | [`/query/player`](#327-查询用户的简略成绩信息) | 无需验证 / Bearer | 获取用户的简略成绩信息（b30+n20） |
 | `chunithmprober` | [`/player/update_records`](#328-更新用户的-chunithm-成绩数据) | 登录验证 / Import-Token / Bearer | 通过标准成绩格式导入成绩 |
 | `chunithmprober` | [`/player/update_records_html`](#325-通过-html-格式的数据更新chunithm-成绩) | 登录验证 / Import-Token / Bearer | 通过 HTML 源码导入成绩 |
 | `chunithmprober` | [`/player/delete_records`](#326-删除用户的-chunithm-成绩数据) | 登录验证 / Import-Token / Bearer | 删除用户的 CHUNITHM 成绩数据 |
@@ -782,11 +782,11 @@ GET /player/records?level_index=3&ds=13.5..&fc=fc,fcp,ap,app
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/query/player` | 无需验证 | POST |
+| `/query/player` | 无需验证 / [Bearer](#25-bearer-令牌验证要求) | POST |
 
-作为**获取用户b50等数据的首选**，此方法不设验证要求，访问成功与否取决于用户是否同意用户协议或设置隐私。
+作为**获取用户b50等数据的首选**，此方法不携带 [Bearer](#25-bearer-令牌验证要求) 令牌时不设验证要求，访问成功与否取决于用户是否同意用户协议或设置隐私。
 
-要访问指定用户的简略成绩信息，需要向端点发送 POST 请求，并在请求体中以 JSON 格式附带用户的 `username` 或 `qq` 作为用户信息。**如果您需要获取的是b50而非b40，您需要在请求体中附带一个 `b50` 参数，其值可以任意设定，但是不能为空**。否则，服务器会默认返回用户的b40数据，如：
+要访问指定用户的简略成绩信息，需要向端点发送 POST 请求，并在请求体中以 JSON 格式附带用户的 `username` 或 `qq` 作为用户信息，或不带以上参数并在请求头中携带 `Authorization: Bearer your_access_token`（需要 scope：`prober.records.read`）。**如果您需要获取的是b50而非b40，您需要在请求体中附带一个 `b50` 参数，其值可以任意设定，但是不能为空**。否则，服务器会默认返回用户的b40数据，如：
 
 ```json
 {
@@ -1307,9 +1307,9 @@ GET /player/records?level_index=3&ds=14..&fc=fullcombo,alljustice
 
 | 端点路径 | 权限要求 | 请求方法 |
 |-----|-----|-----|
-| `/query/player` | 无需验证 | POST |
+| `/query/player` | 无需验证 / [Bearer](#25-bearer-令牌验证要求) | POST |
 
-请求体为 JSON，需包含 `qq` 或 `username` 其中之一。成功时返回：
+请求体为 JSON，需包含 `qq` 或 `username` 其中之一，或不带以上参数并在请求头中携带 `Authorization: Bearer your_access_token`（需要 scope：`chunithm.records.read`）。成功时返回：
 
 | **字段**                  | **类型**   | **说明**                                               |
 |--|--|--|
